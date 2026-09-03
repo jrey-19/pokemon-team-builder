@@ -1,0 +1,6 @@
+# Python virtual environment
+pkmn-teambuilder/
+
+# Python cache files
+__pycache__/
+*.py[cod]
