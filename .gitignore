@@ -1,6 +1,10 @@
-# Python virtual environment
+# Python
 pkmn-teambuilder/
-
-# Python cache files
 __pycache__/
 *.py[cod]
+
+# Mac
+.DS_Store
+
+# VsCode
+.vscode/
