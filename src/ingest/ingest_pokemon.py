@@ -73,9 +73,12 @@ def parse_pokemon(data: dict) -> dict:
         "special-defense": stats['special-defense'],
         "speed": stats['speed'],
         "ability": data['abilities'][0]['ability']['name'] if data['abilities'] else None,
-        "moves": [move['move']['name'] for move in data['moves']],
+        # "moves": [move['move']['name'] for move in data['moves']],
         "sprite": data['sprites']['front_default']
     }
+
+def fetch_and_parse(names: list[str]) -> dict:
+    return {name: parse_pokemon(fetch_pokemon(name)) for name in names}
 
 def get_variety_names(species_name: str) -> list[str]:
     url = f"https://pokeapi.co/api/v2/pokemon-species/{species_name.lower()}"
@@ -85,6 +88,7 @@ def get_variety_names(species_name: str) -> list[str]:
     return [variety["pokemon"]["name"] for variety in data["varieties"]]
 
 if __name__ == "__main__":
-    test = fetch_pokemon("venusaur")
-    print(parse_pokemon(test))
-    print(get_variety_names("pikachu"))
+    # test = fetch_pokemon("venusaur")
+    # print(parse_pokemon(test))
+    # print(get_variety_names("pikachu"))
+    print(fetch_and_parse(["pikachu", "charizard", "bulbasaur"]))
