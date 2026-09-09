@@ -26,14 +26,20 @@ def parse_pokemon(data: dict) -> dict:
     }
 
 def fetch_and_parse(names: list[str]) -> dict:
-    return {name: parse_pokemon(fetch_pokemon(name)) for name in names}
+    results = []
+    for i, name in enumerate(names):
+        data = fetch_pokemon(name)
+        parsed = parse_pokemon(data)
+        results.append(parsed)
+        print(f"[{i}/{len(names)}] {parsed['name']}")
+    return results
 
 def get_variety_names(species_name: str) -> list[str]:
     url = f"https://pokeapi.co/api/v2/pokemon-species/{species_name.lower()}"
     response = requests.get(url)
     response.raise_for_status()
     data = response.json()
-    return [variety["pokemon"]["name"] for variety in data["varieties"]]
+    return [variety['pokemon']['name'] for variety in data['varieties']]
 
 def get_all_species() -> list[str]:
     url = "https://pokeapi.co/api/v2/pokemon-species?limit=10000"
@@ -43,16 +49,5 @@ def get_all_species() -> list[str]:
     return [species["name"] for species in data["results"]]
 
 if __name__ == "__main__":
-
-    # Parses first 10 species and varieties
-    species_names = get_all_species()[:10]
-
-    variety_names = []
-    for species in species_names:
-        variety_names.extend(get_variety_names(species))
-
-    print(len(variety_names))
-    print(variety_names)
-
-    pokemon_list = fetch_and_parse(variety_names)
-    print(f"Total parsed: {len(pokemon_list)}")
+    get_variety_names("pikachu")
+    fetch_and_parse(["pikachu", "bulbasaur", "charmander"])
