@@ -1,4 +1,5 @@
 import requests
+import sqlite3
 EXCLUDE_SUFFIXES = ["-totem", "-cap" ]
 EXCLUDE_EXACT = ["raticate-totem-alola", "pikachu-belle", "pikachu-rock-star", "pikachu-bell", "pikachu-pop-star", "pikachu-phd", "pikachu-libre", "pikachu-cosplay"]
 
@@ -51,5 +52,13 @@ def loop_all_pokemon():
         for pokemon in data['results']:
             get_pokemon_varieties(pokemon['name'])
 
+
+# Fetches raw JSON for a single Pokemon from PokeAPI
+def fetch_pokemon(name: str) -> dict:
+    response = requests.get(f"https://pokeapi.co/api/v2/pokemon/{name.lower()}")
+    response.raise_for_status()
+    return response.json()
+
 if __name__ == "__main__":
-    get_pokemon_varieties("pikachu") 
+    test = fetch_pokemon("venusaur")
+    print(test["types"][0]["type"]["name"])
