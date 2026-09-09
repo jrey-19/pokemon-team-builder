@@ -59,6 +59,24 @@ def fetch_pokemon(name: str) -> dict:
     response.raise_for_status()
     return response.json()
 
+# Organizes the raw JSON into a structured dictionary with important fields
+def parse_pokemon(data: dict) -> dict:
+    stats = {stat['stat']['name']: stat['base_stat'] for stat in data['stats']}
+    return {
+        "id": data['id'],
+        "name": data['name'],
+        "types": [t['type']['name'] for t in data['types']],
+        "hp": stats['hp'],
+        "attack": stats['attack'],
+        "defense": stats['defense'],
+        "special-attack": stats['special-attack'],
+        "special-defense": stats['special-defense'],
+        "speed": stats['speed'],
+        "ability": data['abilities'][0]['ability']['name'] if data['abilities'] else None,
+        "moves": [move['move']['name'] for move in data['moves']],
+        "sprite": data['sprites']['front_default']
+    }
+
 if __name__ == "__main__":
     test = fetch_pokemon("venusaur")
-    print(test["types"][0]["type"]["name"])
+    print(parse_pokemon(test))
