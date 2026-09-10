@@ -27,7 +27,7 @@ def parse_pokemon(data: dict) -> dict:
 
 def fetch_and_parse(names: list[str]) -> dict:
     results = []
-    for i, name in enumerate(names):
+    for i, name in enumerate(names, 1):
         data = fetch_pokemon(name)
         parsed = parse_pokemon(data)
         results.append(parsed)
@@ -48,6 +48,25 @@ def get_all_species() -> list[str]:
     data = response.json()
     return [species["name"] for species in data["results"]]
 
+def get_all_varieties(species_names: list[str]) -> list[str]:
+    all_names = []
+    for i, species in enumerate(species_names, 1):
+        varieties = get_variety_names(species)
+        for variety in varieties:
+            all_names.append(variety)
+            if variety == species:
+                print(f"[{i}] {variety}")
+            else:
+                print(f"    {variety}")
+    return all_names
+
 if __name__ == "__main__":
-    get_variety_names("pikachu")
-    fetch_and_parse(["pikachu", "bulbasaur", "charmander"])
+    species_names = get_all_species()[:10]   # just the first 10 for now
+
+    all_variety_names = get_all_varieties(species_names[:10])
+
+    print(len(all_variety_names))
+    print(all_variety_names)
+
+    pokemon_list = fetch_and_parse(all_variety_names)
+    print(f"Total parsed: {len(pokemon_list)}")
