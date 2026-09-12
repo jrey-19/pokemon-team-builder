@@ -1,5 +1,6 @@
 import requests
 import sqlite3
+import json
 
 # Fetches raw JSON for a single Pokemon from PokeAPI
 def fetch_pokemon(name: str) -> dict:
@@ -59,14 +60,19 @@ def get_all_varieties(species_names: list[str]) -> list[str]:
             else:
                 print(f"    {variety}")
     return all_names
+def save_to_json(data: list[dict], filename: str = "pokemon_data.json") -> None:
+    with open(filename, 'w') as f:
+        json.dump(data, f, indent=4)
+    print(f"Saved {len(data)} records to {filename}")
+
+def load_from_json(filename: str = "pokemon_data.json") -> list[dict]:
+    with open(filename) as f:
+        data = json.load(f)
+    print(f"Loaded {len(data)} pokemon from {filename}")
+    return data
 
 if __name__ == "__main__":
-    species_names = get_all_species()[:10]   # just the first 10 for now
-
-    all_variety_names = get_all_varieties(species_names[:10])
-
-    print(len(all_variety_names))
-    print(all_variety_names)
-
+    species_names = get_all_species()
+    all_variety_names = get_all_varieties(species_names)
     pokemon_list = fetch_and_parse(all_variety_names)
-    print(f"Total parsed: {len(pokemon_list)}")
+    save_to_json(pokemon_list)
