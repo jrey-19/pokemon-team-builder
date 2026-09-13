@@ -1,9 +1,11 @@
 import requests
 import sqlite3
 import json
+import time
 
 # Fetches raw JSON for a single Pokemon from PokeAPI
 def fetch_pokemon(name: str) -> dict:
+    time.sleep(0.05)
     response = requests.get(f"https://pokeapi.co/api/v2/pokemon/{name.lower()}")
     response.raise_for_status()
     return response.json()
@@ -36,6 +38,7 @@ def fetch_and_parse(names: list[str]) -> dict:
     return results
 
 def get_variety_names(species_name: str) -> list[str]:
+    time.sleep(0.05)
     url = f"https://pokeapi.co/api/v2/pokemon-species/{species_name.lower()}"
     response = requests.get(url)
     response.raise_for_status()
@@ -43,6 +46,7 @@ def get_variety_names(species_name: str) -> list[str]:
     return [variety['pokemon']['name'] for variety in data['varieties']]
 
 def get_all_species() -> list[str]:
+    time.sleep(0.05)
     url = "https://pokeapi.co/api/v2/pokemon-species?limit=10000"
     response = requests.get(url)
     response.raise_for_status()
