@@ -1,5 +1,5 @@
-beckett==0.8.0
-inflect==0.2.5
-pokepy==0.4.0
-requests==2.10.0
-six==1.10.0
+certifi==2026.7.22
+charset-normalizer==3.5.1
+idna==3.19
+requests==2.34.2
+urllib3==2.7.0
