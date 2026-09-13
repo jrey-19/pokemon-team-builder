@@ -30,11 +30,18 @@ def parse_pokemon(data: dict) -> dict:
 
 def fetch_and_parse(names: list[str]) -> dict:
     results = []
+    failed = []
     for i, name in enumerate(names, 1):
-        data = fetch_pokemon(name)
-        parsed = parse_pokemon(data)
-        results.append(parsed)
-        print(f"[{i}/{len(names)}] {parsed['name']}")
+        try:
+            data = fetch_pokemon(name)
+            parsed = parse_pokemon(data)
+            results.append(parsed)
+            print(f"[{i}/{len(names)}] {parsed['name']}")
+        except Exception as e:
+            print(f"[{i}/{len(names)}] Failed to fetch {name}: {e}")
+            failed.append(name)
+    if failed:
+        print(f"Failed to fetch {len(failed)} pokemon: {', '.join(failed)}")
     return results
 
 def get_variety_names(species_name: str) -> list[str]:
