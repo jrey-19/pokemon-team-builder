@@ -15,6 +15,7 @@ def parse_pokemon(data: dict) -> dict:
     stats = {stat['stat']['name']: stat['base_stat'] for stat in data['stats']}
     return {
         "id": data['id'],
+        "species_id": data['species']['url'].rstrip('/').split('/')[-1],
         "name": data['name'],
         "types": [t['type']['name'] for t in data['types']],
         "hp": stats['hp'],
