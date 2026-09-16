@@ -1,7 +1,7 @@
 # Python
-pkmn-teambuilder/
 __pycache__/
 *.py[cod]
+.venv/
 
 # Mac
 .DS_Store
