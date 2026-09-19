@@ -11,3 +11,13 @@ CREATE TABLE pokemon (
     sprite TEXT
 );
 
+CREATE TABLE types (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT UNIQUE
+); 
+CREATE TABLE pokemon_types (
+    pokemon_id INTEGER PRIMARY KEY,
+    type_id INTEGER,
+    FOREIGN KEY (pokemon_id) REFERENCES pokemon(id),
+    FOREIGN KEY (type_id) REFERENCES types(id)
+);
