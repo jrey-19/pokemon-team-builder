@@ -3,14 +3,12 @@ import sqlite3
 import json
 import time
 
-# Fetches raw JSON for a single Pokemon from PokeAPI
 def fetch_pokemon(name: str) -> dict:
     time.sleep(0.05)
     response = requests.get(f"https://pokeapi.co/api/v2/pokemon/{name.lower()}")
     response.raise_for_status()
     return response.json()
 
-# Organizes the raw JSON into a structured dictionary with important fields
 def parse_pokemon(data: dict) -> dict:
     stats = {stat['stat']['name']: stat['base_stat'] for stat in data['stats']}
     return {
@@ -73,16 +71,51 @@ def get_all_varieties(species_names: list[str]) -> list[str]:
             else:
                 print(f"    {variety}")
     return all_names
-def save_to_json(data: list[dict], filename: str = "pokemon_data.json") -> None:
+
+def save_to_json(data: list[dict], filename: str = "data/raw/pokemon_data.json") -> None:
     with open(filename, 'w') as f:
         json.dump(data, f, indent=4)
     print(f"Saved {len(data)} records to {filename}")
 
-def load_from_json(filename: str = "pokemon_data.json") -> list[dict]:
+def load_from_json(filename: str = "data/raw/pokemon_data.json") -> list[dict]:
     with open(filename) as f:
         data = json.load(f)
     print(f"Loaded {len(data)} pokemon from {filename}")
     return data
+
+def insert_pokemon(conn, p: dict) -> None:
+    conn.execute(
+        """INSERT OR REPLACE INTO pokemon
+           (id, species_id, name, hp, attack, defense, special_attack, special_defense, speed, sprite)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        (p["id"], p["species_id"], p["name"], p["hp"], p["attack"], p["defense"],
+         p["special-attack"], p["special-defense"], p["speed"], p["sprite"])
+    )
+
+    for type_name in p["types"]:
+        conn.execute("INSERT OR IGNORE INTO types (name) VALUES (?)", (type_name,))
+        type_id = conn.execute("SELECT id FROM types WHERE name = ?", (type_name,)).fetchone()[0]
+        conn.execute("INSERT OR IGNORE INTO pokemon_types (pokemon_id, type_id) VALUES (?, ?)", (p["id"], type_id))
+
+    for move_name in p["moves"]:
+        conn.execute("INSERT OR IGNORE INTO moves (name) VALUES (?)", (move_name,))
+        move_id = conn.execute("SELECT id FROM moves WHERE name = ?", (move_name,)).fetchone()[0]
+        conn.execute("INSERT OR IGNORE INTO pokemon_moves (pokemon_id, move_id) VALUES (?, ?)", (p["id"], move_id))
+
+    for ability in p["abilities"]:
+        conn.execute("INSERT OR IGNORE INTO abilities (name) VALUES (?)", (ability["name"],))
+        ability_id = conn.execute("SELECT id FROM abilities WHERE name = ?", (ability["name"],)).fetchone()[0]
+        conn.execute(
+            "INSERT OR IGNORE INTO pokemon_abilities (pokemon_id, ability_id, is_hidden) VALUES (?, ?, ?)",
+            (p["id"], ability_id, int(ability["is_hidden"]))
+        )
+
+    conn.commit()
+
+def insert_all(conn, pokemon_list: list[dict]) -> None:
+    for i, p in enumerate(pokemon_list, 1):
+        insert_pokemon(conn, p)
+        print(f"[{i}/{len(pokemon_list)}] Inserted {p['name']}")
 
 if __name__ == "__main__":
     species_names = get_all_species()

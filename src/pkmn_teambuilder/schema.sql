@@ -17,8 +17,9 @@ CREATE TABLE IF NOT EXISTS types (
 ); 
 
 CREATE TABLE IF NOT EXISTS pokemon_types (
-    pokemon_id INTEGER PRIMARY KEY,
+    pokemon_id INTEGER,
     type_id INTEGER,
+    PRIMARY KEY (pokemon_id, type_id),
     FOREIGN KEY (pokemon_id) REFERENCES pokemon(id),
     FOREIGN KEY (type_id) REFERENCES types(id)
 );
@@ -43,6 +44,7 @@ CREATE TABLE IF NOT EXISTS abilities (
 CREATE TABLE IF NOT EXISTS pokemon_abilities (
     pokemon_id INTEGER,
     ability_id INTEGER,
+    is_hidden INTEGER,
     FOREIGN KEY (pokemon_id) REFERENCES pokemon(id),
     FOREIGN KEY (ability_id) REFERENCES abilities(id)
 );
