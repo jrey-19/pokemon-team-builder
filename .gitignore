@@ -4,6 +4,8 @@ __pycache__/
 .venv/
 data/raw/
 data/pokemon.db
+*.egg-info
+
 
 # Mac
 .DS_Store
