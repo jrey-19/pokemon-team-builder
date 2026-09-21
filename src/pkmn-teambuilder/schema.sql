@@ -1,4 +1,4 @@
-CREATE TABLE pokemon (
+CREATE TABLE IF NOT EXISTS pokemon (
     id INTEGER PRIMARY KEY,
     species_id INTEGER,
     name TEXT NOT NULL,
@@ -11,43 +11,43 @@ CREATE TABLE pokemon (
     sprite TEXT
 );
 
-CREATE TABLE types (
+CREATE TABLE IF NOT EXISTS types (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT UNIQUE
 ); 
 
-CREATE TABLE pokemon_types (
+CREATE TABLE IF NOT EXISTS pokemon_types (
     pokemon_id INTEGER PRIMARY KEY,
     type_id INTEGER,
     FOREIGN KEY (pokemon_id) REFERENCES pokemon(id),
     FOREIGN KEY (type_id) REFERENCES types(id)
 );
 
-CREATE TABLE moves (
+CREATE TABLE IF NOT EXISTS moves (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT UNIQUE
 );
 
-CREATE TABLE pokemon_moves (
+CREATE TABLE IF NOT EXISTS pokemon_moves (
     pokemon_id INTEGER,
     move_id INTEGER,
     FOREIGN KEY (pokemon_id) REFERENCES pokemon(id),
     FOREIGN KEY (move_id) REFERENCES moves(id)
 );
 
-CREATE TABLE abilities (
+CREATE TABLE IF NOT EXISTS abilities (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT UNIQUE
 );
 
-CREATE TABLE pokemon_abilities (
+CREATE TABLE IF NOT EXISTS pokemon_abilities (
     pokemon_id INTEGER,
     ability_id INTEGER,
     FOREIGN KEY (pokemon_id) REFERENCES pokemon(id),
     FOREIGN KEY (ability_id) REFERENCES abilities(id)
 );
 
-CREATE TABLE type_matchups (
+CREATE TABLE IF NOT EXISTS type_matchups (
     attacker_type_id INTEGER,
     defender_type_id INTEGER,
     multiplier REAL,
@@ -56,6 +56,6 @@ CREATE TABLE type_matchups (
     FOREIGN KEY (defender_type_id) REFERENCES types(id)
 );
 
-CREATE INDEX idx_pokemon_types_pokemon_id ON pokemon_types(pokemon_id);
-CREATE INDEX idx_pokemon_moves_pokemon_id ON pokemon_moves(pokemon_id);
-CREATE INDEX idx_pokemon_abilities_pokemon_id ON pokemon_abilities(pokemon_id);
+CREATE INDEX IF NOT EXISTS idx_pokemon_types_pokemon_id ON pokemon_types(pokemon_id);
+CREATE INDEX IF NOT EXISTS idx_pokemon_moves_pokemon_id ON pokemon_moves(pokemon_id);
+CREATE INDEX IF NOT EXISTS idx_pokemon_abilities_pokemon_id ON pokemon_abilities(pokemon_id);
