@@ -112,6 +112,25 @@ def insert_pokemon(conn, p: dict) -> None:
 
     conn.commit()
 
+def seed_type_matchups(conn, path: str = "data/raw/type_matchups.json") -> None:
+    with open(path) as f:
+        chart = json.load(f)
+
+    # look up ids by name
+    type_ids = {name: id for id, name in conn.execute("SELECT id, name FROM types")}
+
+    for attacker, attacker_id in type_ids.items():
+        overrides = chart.get(attacker, {})
+        for defender, defender_id in type_ids.items():
+            multiplier = overrides.get(defender, 1.0)
+            conn.execute(
+                """INSERT OR REPLACE INTO type_matchups
+                   (attacker_type_id, defender_type_id, multiplier)
+                   VALUES (?, ?, ?)""",
+                (attacker_id, defender_id, multiplier),
+            )
+    conn.commit()
+
 def insert_all(conn, pokemon_list: list[dict]) -> None:
     for i, p in enumerate(pokemon_list, 1):
         insert_pokemon(conn, p)
