@@ -26,7 +26,13 @@ CREATE TABLE IF NOT EXISTS pokemon_types (
 
 CREATE TABLE IF NOT EXISTS moves (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT UNIQUE
+    name TEXT UNIQUE,
+    power INTEGER,
+    accuracy INTEGER,
+    pp INTEGER,
+    type_id INTEGER REFERENCES types(id),
+    damage_class TEXT,
+    effect TEXT
 );
 
 CREATE TABLE IF NOT EXISTS pokemon_moves (
@@ -38,7 +44,8 @@ CREATE TABLE IF NOT EXISTS pokemon_moves (
 
 CREATE TABLE IF NOT EXISTS abilities (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT UNIQUE
+    name TEXT UNIQUE,
+    effect TEXT
 );
 
 CREATE TABLE IF NOT EXISTS pokemon_abilities (

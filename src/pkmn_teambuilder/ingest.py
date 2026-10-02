@@ -44,6 +44,69 @@ def fetch_and_parse(names: list[str]) -> dict:
         print(f"Failed to fetch {len(failed)} pokemon: {', '.join(failed)}")
     return results
 
+def fetch_ability(name: str) -> dict:
+    time.sleep(0.05)
+    url = f"https://pokeapi.co/api/v2/ability/{name.lower()}"
+    response = requests.get(url)
+    response.raise_for_status()
+    return response.json()
+
+def parse_ability_effect(data: dict) -> str | None:
+    for effect in data['effect_entries']:
+        if effect['language']['name'] == 'en':
+            return effect["effect"].replace("\n", " ").replace("\u000c", " ")
+    return None
+
+def backfill_ability_effects(conn) -> None:
+    ability_rows = conn.execute("SELECT id, name FROM abilities").fetchall()
+    for i, (ability_id, name) in enumerate(ability_rows, 1):
+        data = fetch_ability(name)
+        effect = parse_ability_effect(data)
+        conn.execute("UPDATE abilities SET effect = ? WHERE id = ?", (effect, ability_id))
+        print(f"[{i}/{len(ability_rows)}] {name}")
+    conn.commit()
+
+def fetch_move(name: str) -> dict:
+    time.sleep(0.05)
+    url = f"https://pokeapi.co/api/v2/move/{name.lower()}"
+    response = requests.get(url)
+    response.raise_for_status()
+    return response.json()
+
+def parse_move_details(data: dict) -> dict:
+    effect_text = None
+    for entry in data["effect_entries"]:
+        if entry["language"]["name"] == "en":
+            effect_text = entry["effect"].replace("\n", " ").replace("\u000c", " ")
+            if data.get("effect_chance") is not None:
+                effect_text = effect_text.replace("$effect_chance", str(data["effect_chance"]))
+            break
+    return {
+        "power": data["power"],
+        "accuracy": data["accuracy"],
+        "pp": data["pp"],
+        "damage_class": data["damage_class"]["name"],
+        "type_name": data["type"]["name"],
+        "effect": effect_text,
+    }
+
+def backfill_move_details(conn) -> None:
+    move_rows = conn.execute("SELECT id, name FROM moves").fetchall()
+    for i, (move_id, name) in enumerate(move_rows, 1):
+        data = fetch_move(name)
+        details = parse_move_details(data)
+        type_id = conn.execute(
+            "SELECT id FROM types WHERE name = ?", (details["type_name"],)
+        ).fetchone()[0]
+        conn.execute(
+            """UPDATE moves SET power = ?, accuracy = ?, pp = ?, type_id = ?, damage_class = ?, effect = ?
+               WHERE id = ?""",
+            (details["power"], details["accuracy"], details["pp"], type_id,
+             details["damage_class"], details["effect"], move_id),
+        )
+        print(f"[{i}/{len(move_rows)}] {name}")
+    conn.commit()
+    
 def get_variety_names(species_name: str) -> list[str]:
     time.sleep(0.05)
     url = f"https://pokeapi.co/api/v2/pokemon-species/{species_name.lower()}"
