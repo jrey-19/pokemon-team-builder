@@ -97,7 +97,7 @@ class TeamBuilder:
 
         return self._query(sql, tuple(params))
     
-    def team_type_coverage(self,team: list[int],moves: dict[int, list[str]] | None = None) -> dict:
+    def team_type_coverage(self,team: list[int], moves: dict[int, list[str]] | None = None) -> dict:
         if not team:
             raise ValueError("team must contain at least one pokemon id")
 
@@ -108,38 +108,80 @@ class TeamBuilder:
                 "SELECT attacker_type_id, defender_type_id, multiplier FROM type_matchups"
             )
         }
+
         defense: dict[int, dict[str, float]] = {}
+        members: dict[int, dict] = {}
         offense_types: set[str] = set()
 
         for pokemon_id in team:
             rows = self._query(
-                """SELECT t.id, t.name FROM pokemon_types pt
-                JOIN types t ON pt.type_id = t.id
-                WHERE pt.pokemon_id = ?""",
+                """SELECT p.name AS pokemon_name, t.id, t.name
+                   FROM pokemon p
+                   JOIN pokemon_types pt ON pt.pokemon_id = p.id
+                   JOIN types t ON pt.type_id = t.id
+                   WHERE p.id = ?""",
                 (pokemon_id,),
             )
             if not rows:
                 raise ValueError(f"No such pokemon id: {pokemon_id}")
-            defending_type_ids = [row["id"] for row in rows]
+            pokemon_name = rows[0]["pokemon_name"]
+            own_type_ids = [row["id"] for row in rows]
 
+            # defense (how the pokemon takes damage)
             per_pokemon_defense = {}
             for attacker_id, attacker_name in all_types.items():
                 multiplier = 1.0
-                for defender_id in defending_type_ids:
-                    multiplier *= matchups.get((attacker_id, defender_id), 1.0)
+                for own_id in own_type_ids:
+                    multiplier *= matchups.get((attacker_id, own_id), 1.0)
                 per_pokemon_defense[attacker_name] = multiplier
             defense[pokemon_id] = per_pokemon_defense
+
+            weak_to = dict(sorted(
+                ((t, m) for t, m in per_pokemon_defense.items() if m > 1.0),
+                key=lambda kv: (-kv[1], kv[0]),
+            ))
+            resists = dict(sorted(
+                ((t, m) for t, m in per_pokemon_defense.items() if 0.0 < m < 1.0),
+                key=lambda kv: (kv[1], kv[0]),
+            ))
+            immune_to = sorted(t for t, m in per_pokemon_defense.items() if m == 0.0)
+
+            # offense (moves if given, otherwise just STAB)
             chosen = moves.get(pokemon_id) if moves else None
             if chosen:
                 attacker_type_ids = self._damaging_move_type_ids(pokemon_id, chosen)
             else:
-                attacker_type_ids = defending_type_ids  # STAB fallback
+                attacker_type_ids = set(own_type_ids)
 
-            for attacker_id in attacker_type_ids:
-                for defender_id, defender_name in all_types.items():
-                    if matchups.get((attacker_id, defender_id), 1.0) > 1.0:
-                        offense_types.add(defender_name)
-        return {"defense": defense, "offense": sorted(offense_types)}
+            # Best multiplier across its attacking types, per defending type.
+            if attacker_type_ids:
+                best = {
+                    defender_name: max(
+                        matchups.get((a, defender_id), 1.0) for a in attacker_type_ids
+                    )
+                    for defender_id, defender_name in all_types.items()
+                }
+            else:
+                best = {}
+
+            super_effective = sorted(t for t, m in best.items() if m > 1.0)
+            not_very_effective = sorted(t for t, m in best.items() if 0.0 < m < 1.0)
+            no_effect = sorted(t for t, m in best.items() if m == 0.0)
+            offense_types.update(super_effective)
+
+            members[pokemon_id] = {
+                "name": pokemon_name,
+                "types": [row["name"] for row in rows],
+                "attacking_types": sorted(all_types[a] for a in attacker_type_ids),
+                "weak_to": weak_to,
+                "resists": resists,
+                "immune_to": immune_to,
+                "super_effective_against": super_effective,
+                "not_very_effective_against": not_very_effective,
+                "no_effect_against": no_effect,
+            }
+
+        return {"defense": defense, "offense": sorted(offense_types), "members": members}
 
     def _damaging_move_type_ids(self, pokemon_id: int, move_names: list[str]) -> set[int]:
         placeholders = ",".join("?" for _ in move_names)
