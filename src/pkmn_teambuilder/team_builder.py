@@ -196,9 +196,10 @@ class TeamBuilder:
         if unknown:
             raise ValueError(f"pokemon {pokemon_id} cannot learn: {sorted(unknown)}")
         return {row["type_id"] for row in rows if row["power"] is not None}
-    
-    def suggest_coverage_gaps(self, team: list[int]) -> list[str]:
-        report = self.team_type_coverage(team)
+
+    # types the team has no coverage against
+    def suggest_coverage_gaps(self,team: list[int],moves: dict[int, list[str]] | None = None) -> list[str]:
+        report = self.team_type_coverage(team, moves)
         all_type_names = {row["name"] for row in self._query("SELECT name FROM types")}
         return sorted(all_type_names - set(report["offense"]))
     
