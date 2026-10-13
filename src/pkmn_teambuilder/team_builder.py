@@ -1,5 +1,6 @@
 import sqlite3
 
+from pkmn_teambuilder.db import get_connection
 class TeamBuilder:
     FIELD_COLUMNS = {
         "name": "p.name",
@@ -95,3 +96,45 @@ class TeamBuilder:
         sql += " ORDER BY p.name"
 
         return self._query(sql, tuple(params))
+    
+    def team_type_coverage(self, team: list[int]) -> dict:
+        if not team:
+            raise ValueError("team must contain at least one pokemon id")
+
+        all_types = {row["id"]: row["name"] for row in self._query("SELECT id, name FROM types")}
+        matchups = {
+            (row["attacker_type_id"], row["defender_type_id"]): row["multiplier"]
+            for row in self._query(
+                "SELECT attacker_type_id, defender_type_id, multiplier FROM type_matchups"
+            )
+        }
+        defense: dict[int, dict[str, float]] = {}
+        offense_types: set[str] = set()
+
+        for pokemon_id in team:
+            rows = self._query(
+                """SELECT t.id, t.name FROM pokemon_types pt
+                JOIN types t ON pt.type_id = t.id
+                WHERE pt.pokemon_id = ?""",
+                (pokemon_id,),
+            )
+            if not rows:
+                raise ValueError(f"No such pokemon id: {pokemon_id}")
+            defending_type_ids = [row["id"] for row in rows]
+
+            per_pokemon_defense = {}
+            for attacker_id, attacker_name in all_types.items():
+                multiplier = 1.0
+                for defender_id in defending_type_ids:
+                    multiplier *= matchups.get((attacker_id, defender_id), 1.0)
+                per_pokemon_defense[attacker_name] = multiplier
+            defense[pokemon_id] = per_pokemon_defense
+            for attacker_id in defending_type_ids:
+                for defender_id, defender_name in all_types.items():
+                    if matchups.get((attacker_id, defender_id), 1.0) > 1.0:
+                        offense_types.add(defender_name)
+
+        return {"defense": defense, "offense": sorted(offense_types)}
+if __name__ == "__main__":
+    tb = TeamBuilder(get_connection())
+    print([p["name"] for p in tb.find_pokemon([{"field": "type", "op": "=", "value": "fire"}, {"field": "type", "op": "=", "value": "flying"}])])
