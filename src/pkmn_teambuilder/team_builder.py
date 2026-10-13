@@ -97,7 +97,7 @@ class TeamBuilder:
 
         return self._query(sql, tuple(params))
     
-    def team_type_coverage(self, team: list[int]) -> dict:
+    def team_type_coverage(self,team: list[int],moves: dict[int, list[str]] | None = None) -> dict:
         if not team:
             raise ValueError("team must contain at least one pokemon id")
 
@@ -129,12 +129,38 @@ class TeamBuilder:
                     multiplier *= matchups.get((attacker_id, defender_id), 1.0)
                 per_pokemon_defense[attacker_name] = multiplier
             defense[pokemon_id] = per_pokemon_defense
-            for attacker_id in defending_type_ids:
+            chosen = moves.get(pokemon_id) if moves else None
+            if chosen:
+                attacker_type_ids = self._damaging_move_type_ids(pokemon_id, chosen)
+            else:
+                attacker_type_ids = defending_type_ids  # STAB fallback
+
+            for attacker_id in attacker_type_ids:
                 for defender_id, defender_name in all_types.items():
                     if matchups.get((attacker_id, defender_id), 1.0) > 1.0:
                         offense_types.add(defender_name)
-
         return {"defense": defense, "offense": sorted(offense_types)}
+
+    def _damaging_move_type_ids(self, pokemon_id: int, move_names: list[str]) -> set[int]:
+        placeholders = ",".join("?" for _ in move_names)
+        rows = self._query(
+            f"""SELECT m.name, m.type_id, m.power
+                FROM pokemon_moves pm
+                JOIN moves m ON pm.move_id = m.id
+                WHERE pm.pokemon_id = ? AND m.name IN ({placeholders})""",
+            (pokemon_id, *move_names),
+        )
+        unknown = set(move_names) - {row["name"] for row in rows}
+        if unknown:
+            raise ValueError(f"pokemon {pokemon_id} cannot learn: {sorted(unknown)}")
+        return {row["type_id"] for row in rows if row["power"] is not None}
+    
+    def suggest_coverage_gaps(self, team: list[int]) -> list[str]:
+        report = self.team_type_coverage(team)
+        all_type_names = {row["name"] for row in self._query("SELECT name FROM types")}
+        return sorted(all_type_names - set(report["offense"]))
+    
 if __name__ == "__main__":
     tb = TeamBuilder(get_connection())
     print([p["name"] for p in tb.find_pokemon([{"field": "type", "op": "=", "value": "fire"}, {"field": "type", "op": "=", "value": "flying"}])])
+    print(tb.team_type_coverage([6, 1], moves={6: ["flamethrower", "earthquake"]}))  # charizard and mega charizard
