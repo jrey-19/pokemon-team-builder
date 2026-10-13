@@ -140,8 +140,17 @@ def test_offense_uses_chosen_moves(tb, pid):
     offense = tb.team_type_coverage([cid], moves={cid: ["earthquake"]})["offense"]
     assert offense == ["electric", "fire", "poison", "rock", "steel"]  # super-effective targets for earthquake
 
-
 def test_team_type_coverage_rejects_unlearnable_move(tb, pid):
     cid = pid("charizard")
     with pytest.raises(ValueError):
         tb.team_type_coverage([cid], moves={cid: ["not-a-move"]})
+
+
+def test_members_report_for_charizard(tb, pid):
+    cid = pid("charizard")
+    m = tb.team_type_coverage([cid])["members"][cid]
+    assert m["name"] == "charizard"
+    assert m["weak_to"]["rock"] == 4.0
+    assert m["immune_to"] == ["ground"]
+    assert "grass" in m["super_effective_against"]
+    assert m["not_very_effective_against"] == ["rock"]
