@@ -176,3 +176,22 @@ def test_find_pokemon_pagination(tb):
 def test_find_pokemon_rejects_invalid_pagination(tb, kwargs):
     with pytest.raises(ValueError):
         tb.find_pokemon(**kwargs)
+
+@pytest.mark.parametrize(
+    "filters",
+    [
+        None,
+        [{"field": "type", "op": "=", "value": "fire"}],
+        [
+            {"field": "type", "op": "=", "value": "fire"},
+            {"field": "type", "op": "=", "value": "flying"},
+        ],
+        [
+            {"field": "move", "op": "=", "value": "flamethrower"},
+            {"field": "move", "op": "=", "value": "fly"},
+        ],
+        [{"field": "name", "op": "=", "value": "not-a-pokemon"}],
+    ],
+)
+def test_count_pokemon_matches_full_results(tb, filters):
+    assert tb.count_pokemon(filters) == len(tb.find_pokemon(filters))
