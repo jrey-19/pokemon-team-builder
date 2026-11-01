@@ -22,7 +22,11 @@ class TeamBuilder:
         cols = [c[0] for c in cur.description]
         return [dict(zip(cols, row)) for row in cur.fetchall()]
     
-    def find_pokemon(self, filters: list[dict] | None = None) -> list[dict]:
+    def find_pokemon(self, filters: list[dict] | None = None, *, limit: int | None = None, offset: int = 0) -> list[dict]:
+        if limit is not None and limit <= 0:
+            raise ValueError("limit must be a positive integer")
+        if offset < 0:
+            raise ValueError("offset must be a non-negative integer")
         sql = (
             "SELECT DISTINCT p.id, p.name, p.hp, p.attack, p.defense, "
             "p.special_attack, p.special_defense, p.speed FROM pokemon p"
@@ -94,7 +98,8 @@ class TeamBuilder:
             if len(move_values) > 1:
                 params.append(len(move_values))
         sql += " ORDER BY p.name"
-
+        sql += " LIMIT ? OFFSET ?"
+        params.extend([limit if limit is not None else -1, offset])
         return self._query(sql, tuple(params))
     
     def team_type_coverage(self,team: list[int], moves: dict[int, list[str]] | None = None) -> dict:
