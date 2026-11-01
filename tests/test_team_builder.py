@@ -154,3 +154,25 @@ def test_members_report_for_charizard(tb, pid):
     assert m["immune_to"] == ["ground"]
     assert "grass" in m["super_effective_against"]
     assert m["not_very_effective_against"] == ["rock"]
+
+def test_find_pokemon_pagination(tb):
+    filters = [{"field": "type", "op": "=", "value": "fire"}]
+    all_matches = tb.find_pokemon(filters)
+
+    assert len(all_matches) > 10
+    assert tb.find_pokemon(filters, limit=5, offset=5) == all_matches[5:10]
+    assert tb.find_pokemon(filters, offset=5) == all_matches[5:]
+    assert tb.find_pokemon(filters, offset=len(all_matches)) == []
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"limit": 0},
+        {"limit": -1},
+        {"offset": -1},
+    ],
+)
+def test_find_pokemon_rejects_invalid_pagination(tb, kwargs):
+    with pytest.raises(ValueError):
+        tb.find_pokemon(**kwargs)
