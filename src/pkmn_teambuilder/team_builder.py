@@ -106,6 +106,14 @@ class TeamBuilder:
         params += (limit if limit is not None else -1, offset)
         return self._query(sql, tuple(params))
     
+    def count_pokemon(self, filters: list[dict] | None = None) -> int:
+        sql, params = self._build_pokemon_query(filters)
+        rows = self._query(
+            f"SELECT COUNT(*) AS total FROM ({sql}) AS matches",
+            params,
+        )
+        return rows[0]["total"]
+    
     def team_type_coverage(self,team: list[int], moves: dict[int, list[str]] | None = None) -> dict:
         if not team:
             raise ValueError("team must contain at least one pokemon id")
