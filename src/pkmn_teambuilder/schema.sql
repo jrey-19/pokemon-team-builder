@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS moves (
 CREATE TABLE IF NOT EXISTS pokemon_moves (
     pokemon_id INTEGER,
     move_id INTEGER,
+    PRIMARY KEY (pokemon_id, move_id),
     FOREIGN KEY (pokemon_id) REFERENCES pokemon(id),
     FOREIGN KEY (move_id) REFERENCES moves(id)
 );
