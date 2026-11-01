@@ -16,21 +16,17 @@ class TeamBuilder:
 
     def __init__(self, conn: sqlite3.Connection) -> None:
         self.conn = conn
-
+    
     def _query(self, sql: str, params: tuple = ()) -> list[dict]:
         cur = self.conn.execute(sql, params)
         cols = [c[0] for c in cur.description]
         return [dict(zip(cols, row)) for row in cur.fetchall()]
     
-    def find_pokemon(self, filters: list[dict] | None = None, *, limit: int | None = None, offset: int = 0) -> list[dict]:
-        if limit is not None and limit <= 0:
-            raise ValueError("limit must be a positive integer")
-        if offset < 0:
-            raise ValueError("offset must be a non-negative integer")
+    def _build_pokemon_query(self, filters: list[dict] | None = None) -> tuple[str, tuple]:
         sql = (
-            "SELECT DISTINCT p.id, p.name, p.hp, p.attack, p.defense, "
-            "p.special_attack, p.special_defense, p.speed FROM pokemon p"
-        )
+                    "SELECT DISTINCT p.id, p.name, p.hp, p.attack, p.defense, "
+                    "p.special_attack, p.special_defense, p.speed FROM pokemon p"
+                )
         joins: list[str] = []
         conditions: list[str] = []
         params: list = []
@@ -38,18 +34,18 @@ class TeamBuilder:
         joined_moves = False
         type_values: list = []
         move_values: list = []
-
+        
         for f in filters or []:
             field, op, value = f["field"], f["op"], f["value"]
-
+        
             if op not in self.ALLOWED_OPS:
                 raise ValueError(f"Unsupported operator: {op!r}")
-
+        
             if field in self.FIELD_COLUMNS:
                 column = self.FIELD_COLUMNS[field]
                 conditions.append(f"{column} {op} ?")
                 params.append(value)
-
+        
             elif field == "type":
                 if op != "=":
                     raise ValueError("'type' filter only supports '='")
@@ -58,7 +54,7 @@ class TeamBuilder:
                     joins.append("JOIN types t ON pt.type_id = t.id")
                     joined_types = True
                 type_values.append(value)
-
+        
             elif field == "move":
                 if op != "=":
                     raise ValueError("'move' filter only supports '='")
@@ -67,26 +63,26 @@ class TeamBuilder:
                     joins.append("JOIN moves m ON pm.move_id = m.id")
                     joined_moves = True
                 move_values.append(value)
-
+        
             else:
                 raise ValueError(f"Unsupported field: {field!r}")
-
+        
         having_parts: list[str] = []
-
+        
         if type_values:
             placeholders = ",".join("?" for _ in type_values)
             conditions.append(f"t.name IN ({placeholders})")
             params.extend(type_values)
             if len(type_values) > 1:
                 having_parts.append("COUNT(DISTINCT t.name) = ?")
-
+        
         if move_values:
             placeholders = ",".join("?" for _ in move_values)
             conditions.append(f"m.name IN ({placeholders})")
             params.extend(move_values)
             if len(move_values) > 1:
                 having_parts.append("COUNT(DISTINCT m.name) = ?")
-
+        
         if joins:
             sql += " " + " ".join(joins)
         if conditions:
@@ -97,9 +93,17 @@ class TeamBuilder:
                 params.append(len(type_values))
             if len(move_values) > 1:
                 params.append(len(move_values))
+        return sql, tuple(params)
+
+    def find_pokemon(self, filters: list[dict] | None = None, *, limit: int | None = None, offset: int = 0) -> list[dict]:
+        if limit is not None and limit <= 0:
+            raise ValueError("limit must be a positive integer")
+        if offset < 0:
+            raise ValueError("offset must be a non-negative integer")
+        sql, params = self._build_pokemon_query(filters)
         sql += " ORDER BY p.name"
         sql += " LIMIT ? OFFSET ?"
-        params.extend([limit if limit is not None else -1, offset])
+        params += (limit if limit is not None else -1, offset)
         return self._query(sql, tuple(params))
     
     def team_type_coverage(self,team: list[int], moves: dict[int, list[str]] | None = None) -> dict:
