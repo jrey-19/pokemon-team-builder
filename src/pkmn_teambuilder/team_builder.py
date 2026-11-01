@@ -106,6 +106,27 @@ class TeamBuilder:
         params += (limit if limit is not None else -1, offset)
         return self._query(sql, tuple(params))
     
+    def get_pokemon_moves(self, pokemon_id: int) -> list[dict]:
+        pokemon = self._query(
+            "SELECT id FROM pokemon WHERE id = ?",
+            (pokemon_id,),
+        )
+        if not pokemon:
+            raise ValueError(f"No such pokemon id: {pokemon_id}")
+
+        return self._query(
+            """
+            SELECT m.name, m.power, m.accuracy, m.pp,
+                t.name AS type, m.damage_class, m.effect
+            FROM pokemon_moves pm
+            JOIN moves m ON pm.move_id = m.id
+            LEFT JOIN types t ON m.type_id = t.id
+            WHERE pm.pokemon_id = ?
+            ORDER BY m.name
+            """,
+            (pokemon_id,),
+        )
+    
     def count_pokemon(self, filters: list[dict] | None = None) -> int:
         sql, params = self._build_pokemon_query(filters)
         rows = self._query(

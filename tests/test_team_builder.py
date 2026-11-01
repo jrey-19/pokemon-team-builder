@@ -195,3 +195,18 @@ def test_find_pokemon_rejects_invalid_pagination(tb, kwargs):
 )
 def test_count_pokemon_matches_full_results(tb, filters):
     assert tb.count_pokemon(filters) == len(tb.find_pokemon(filters))
+
+def test_get_pokemon_moves(tb, pid):
+    moves = tb.get_pokemon_moves(pid("charizard"))
+    by_name = {move["name"]: move for move in moves}
+
+    assert "flamethrower" in by_name
+    assert by_name["flamethrower"]["type"] == "fire"
+    assert by_name["flamethrower"]["damage_class"] == "special"
+    assert by_name["flamethrower"]["power"] is not None
+    assert [move["name"] for move in moves] == sorted(by_name)
+
+
+def test_get_pokemon_moves_rejects_unknown_id(tb):
+    with pytest.raises(ValueError, match="No such pokemon id"):
+        tb.get_pokemon_moves(999999)
